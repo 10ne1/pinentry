@@ -59,9 +59,7 @@
 
    - We only use a Unix domain socket, while emacsclient has an
      ability to use a TCP socket.  The socket file is located at
-     ${TMPDIR-/tmp}/emacs$(id -u)/pinentry (i.e., under the same
-     directory as the socket file used by emacsclient, so the same
-     permission and file owner settings apply).
+     a custom hardcoded location defined as SOCKET_FILE
 
    - The server implementation can be found in pinentry.el, which is
      available in Emacs 25+ or from ELPA.  */
@@ -95,71 +93,17 @@ static pinentry_cmd_handler_t fallback_cmd_handler;
 static int timed_out;
 #endif
 
+#define SOCKET_FILE "/home/adi/.emacs.d/tmp/pinentry"
+
 static int
-set_socket (const char *socket_name)
+set_socket (void)
 {
   struct sockaddr_un unaddr;
   struct stat statbuf;
-  const char *tmpdir;
-  char *tmpdir_storage = NULL;
-  char *socket_name_storage = NULL;
-  uid_t uid;
 
   unaddr.sun_family = AF_UNIX;
 
-  /* We assume 32-bit UIDs, which can be represented with 10 decimal
-     digits.  */
-  uid = getuid ();
-  if (uid != (uint32_t) uid)
-    {
-      fprintf (stderr, "UID is too large\n");
-      return 0;
-    }
-
-  tmpdir = getenv ("TMPDIR");
-  if (!tmpdir)
-    {
-#ifdef _CS_DARWIN_USER_TEMP_DIR
-      size_t n = confstr (_CS_DARWIN_USER_TEMP_DIR, NULL, (size_t) 0);
-      if (n > 0)
-	{
-	  tmpdir = tmpdir_storage = malloc (n);
-	  if (!tmpdir)
-	    {
-	      fprintf (stderr, "out of core\n");
-	      return 0;
-	    }
-	  confstr (_CS_DARWIN_USER_TEMP_DIR, tmpdir_storage, n);
-	}
-      else
-#endif
-	tmpdir = "/tmp";
-    }
-
-  socket_name_storage = malloc (strlen (tmpdir)
-				+ strlen ("/emacs") + 10 + strlen ("/")
-				+ strlen (socket_name)
-				+ 1);
-  if (!socket_name_storage)
-    {
-      fprintf (stderr, "out of core\n");
-      free (tmpdir_storage);
-      return 0;
-    }
-
-  sprintf (socket_name_storage, "%s/emacs%u/%s", tmpdir,
-	   (uint32_t) uid, socket_name);
-  free (tmpdir_storage);
-
-  if (strlen (socket_name_storage) >= sizeof (unaddr.sun_path))
-    {
-      fprintf (stderr, "socket name is too long\n");
-      free (socket_name_storage);
-      return 0;
-    }
-
-  strcpy (unaddr.sun_path, socket_name_storage);
-  free (socket_name_storage);
+  strcpy (unaddr.sun_path, SOCKET_FILE);
 
   /* See if the socket exists, and if it's owned by us. */
   if (stat (unaddr.sun_path, &statbuf) == -1)
@@ -679,7 +623,7 @@ pinentry_emacs_init (void)
   assert (emacs_socket < 0);
 
   /* Check if we can connect to the Emacs server socket.  */
-  if (!set_socket ("pinentry"))
+  if (!set_socket ())
     return 0;
 
   /* Check if the server responds.  */
