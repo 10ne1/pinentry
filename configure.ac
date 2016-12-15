@@ -283,28 +283,15 @@ dnl Checks for libsecmem.
 GNUPG_CHECK_TYPEDEF(byte, HAVE_BYTE_TYPEDEF)
 GNUPG_CHECK_TYPEDEF(ulong, HAVE_ULONG_TYPEDEF)
 
-dnl Check for libcap
-AC_ARG_WITH([libcap], AC_HELP_STRING([--without-libcap],
-            [Disable support for capabilities library]))
-
-if test "x$with_libcap" != "xno"; then
-  AC_PATH_PROG(SETCAP, setcap, :, "$PATH:/sbin:/usr/sbin")
-  AC_CHECK_LIB(cap, cap_set_proc, [
-    AC_DEFINE(USE_CAPABILITIES,1,[The capabilities support library is installed])
-    LIBCAP=-lcap
-  ])
-fi
-AC_SUBST(LIBCAP)
-
 dnl
 dnl Check for curses pinentry program.
 dnl
 AC_ARG_ENABLE(pinentry-curses,
             AC_HELP_STRING([--enable-pinentry-curses], [build curses pinentry]),
-            pinentry_curses=$enableval, pinentry_curses=maybe)
+            pinentry_curses=$enableval, pinentry_curses=no)
 AC_ARG_ENABLE(fallback-curses,
             AC_HELP_STRING([--enable-fallback-curses], [include curses fallback]),
-            fallback_curses=$enableval, fallback_curses=maybe)
+            fallback_curses=$enableval, fallback_curses=no)
 
 dnl
 dnl Checks for curses libraries.  Deal correctly with $pinentry_curses = maybe
@@ -349,7 +336,7 @@ dnl Check for tty pinentry program.
 dnl
 AC_ARG_ENABLE(pinentry-tty,
             AC_HELP_STRING([--enable-pinentry-tty], [build tty pinentry]),
-            pinentry_tty=$enableval, pinentry_tty=maybe)
+            pinentry_tty=$enableval, pinentry_tty=no)
 AM_CONDITIONAL(BUILD_PINENTRY_TTY, test "$pinentry_tty" = "yes")
 
 if test "$pinentry_tty" = "yes"; then
@@ -378,10 +365,10 @@ dnl Check for emacs pinentry program.
 dnl
 AC_ARG_ENABLE(pinentry-emacs,
             AC_HELP_STRING([--enable-pinentry-emacs], [build emacs pinentry]),
-            pinentry_emacs=$enableval, pinentry_emacs=no)
+            pinentry_emacs=$enableval, pinentry_emacs=yes)
 AC_ARG_ENABLE(inside-emacs,
             AC_HELP_STRING([--enable-inside-emacs], [include emacs hack]),
-            inside_emacs=$enableval, inside_emacs=maybe)
+            inside_emacs=$enableval, inside_emacs=yes)
 
 if test "$pinentry_emacs" != "no" -o "$inside_emacs" != "no"; then
   AC_MSG_CHECKING([if Unix domain socket is supported])
@@ -431,11 +418,11 @@ dnl Check for GTK+-2 / GNOME3 pinentry programs.
 dnl
 AC_ARG_ENABLE(pinentry-gtk2,
             AC_HELP_STRING([--enable-pinentry-gtk2], [build GTK+-2 pinentry]),
-            pinentry_gtk_2=$enableval, pinentry_gtk_2=maybe)
+            pinentry_gtk_2=$enableval, pinentry_gtk_2=no)
 
 AC_ARG_ENABLE(pinentry-gnome3,
             AC_HELP_STRING([--enable-pinentry-gnome3], [build GNOME 3 pinentry]),
-            pinentry_gnome_3=$enableval, pinentry_gnome_3=maybe)
+            pinentry_gnome_3=$enableval, pinentry_gnome_3=no)
 
 dnl check for pkg-config
 if test "$pinentry_gtk_2" != "no" -o "$pinentry_gnome_3" != "no"; then
@@ -509,7 +496,7 @@ dnl
 AC_ARG_ENABLE(libsecret,
             AC_HELP_STRING([--enable-libsecret],
 	    [optionally cache passphrases using libsecret]),
-            libsecret=$enableval, libsecret=maybe)
+            libsecret=$enableval, libsecret=no)
 
 dnl check for pkg-config
 if test "$libsecret" != "no" -o "$pinentry-qt" != "no"; then
@@ -556,7 +543,7 @@ dnl Check for Qt pinentry program.
 dnl
 AC_ARG_ENABLE(pinentry-qt,
             AC_HELP_STRING([--enable-pinentry-qt], [build qt pinentry]),
-            pinentry_qt=$enableval, pinentry_qt=maybe)
+            pinentry_qt=$enableval, pinentry_qt=no)
 
 
 dnl
@@ -629,6 +616,8 @@ elif test "$pinentry_tty" = "yes"; then
   PINENTRY_DEFAULT=pinentry-tty
 elif test "$pinentry_w32" = "yes"; then
   PINENTRY_DEFAULT=pinentry-w32
+elif test "$pinentry_emacs" = "yes"; then
+  PINENTRY_DEFAULT=pinentry-emacs
 else
   AC_MSG_ERROR([[No pinentry enabled.]])
 fi
